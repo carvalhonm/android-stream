@@ -43,7 +43,7 @@ export default function ConfigScreen() {
       <TextInput
         value={apiUrl}
         onChangeText={setApiUrl}
-        placeholder="http://serverrpi.ddns.net:4000"
+        placeholder="http://<YOURSERVER>"
         style={{
           borderWidth: 1,
           borderColor: "#ccc",
