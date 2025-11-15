@@ -33,8 +33,9 @@ generate_asset() {
     echo "Generating $dst_folder/$name.webp ($size x $size) from $src"
     convert "$src" -resize ${size}x${size} -background none -gravity center -extent ${size}x${size} "$dst_folder/${name}.png"
     # create webp version too
-    convert "$dst_folder/${name}.png" -quality 80 "$dst_folder/${name}.webp"
+    #convert "$dst_folder/${name}.png" -quality 80 "$dst_folder/${name}.webp"
     #unlink "$dst_folder/${name}.png" # remove png after webp created
+    unlink "$dst_folder/${name}.webp" # remove png after webp created
   else
     echo "Warning: source $src not found. Skipping $name generation in $dst_folder" >&2
   fi
