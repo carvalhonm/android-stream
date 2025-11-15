@@ -6,7 +6,9 @@
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
-    "build:android": "cd android && CMAKE_BUILD_PARALLEL_LEVEL=1 nice -n 10 ./gradlew assembleRelease --max-workers=1"
+    "build:clean": "cd /home/nuno/Pessoal/repos/luna-stream && rm -rf android/app/.cxx android/app/build android/build && cd android && ./gradlew clean --no-daemon",
+    "build:android": "cd android && CMAKE_BUILD_PARALLEL_LEVEL=1 taskset -c 0 nice -n 19 ./gradlew assembleRelease --max-workers=2",
+    "build": "npm run build:clean && npm run build:android"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
