@@ -117,11 +117,48 @@ export default function PlayerScreen() {
               allowsFullscreenVideo={true}
               bounces={false}
               scrollEnabled={false}
+              // Only allow http/https schemes — blocks intent://, market://, deep links
+              originWhitelist={["https://*", "http://*"]}
+              // Prevent window.open from spawning new browser windows / tabs
+              setSupportMultipleWindows={false}
+              // Do NOT allow the webview to open links in external apps
+              allowsLinkPreview={false}
+              // Intercept and kill any new-window requests (ads using target="_blank")
+              onOpenWindow={() => {
+                // swallow — do not open
+              }}
+              // Inject JS to neutralise common ad/popup tricks
+              injectedJavaScript={`
+                (function() {
+                  // Kill window.open
+                  window.open = function() { return null; };
+                  // Kill alert/confirm/prompt popups ads sometimes use
+                  window.alert = function() {};
+                  window.confirm = function() { return false; };
+                  window.prompt = function() { return null; };
+                  // Prevent meta-refresh redirects
+                  var metas = document.querySelectorAll('meta[http-equiv="refresh"]');
+                  metas.forEach(function(m) { m.remove(); });
+                  // Prevent location changes from scripts
+                  Object.defineProperty(window, 'location', {
+                    configurable: false,
+                    enumerable: true,
+                    get: function() { return document.location; },
+                    set: function() { /* blocked */ }
+                  });
+                })();
+                true;
+              `}
               // Block any navigation except the original URL exactly.
               // This prevents popups, target="_blank", same-page navigation, etc.
               onShouldStartLoadWithRequest={request => {
                 try {
                   const requestUrl = String(request.url || "");
+                  // Block any non-http(s) scheme (intent://, market://, custom apps)
+                  if (!requestUrl.startsWith("http://") && !requestUrl.startsWith("https://")) {
+                    console.log("Blocked non-http navigation:", requestUrl);
+                    return false;
+                  }
                   // Allow only when the request URL exactly matches the initial URL.
                   if (requestUrl === urlString) return true;
                   // Also allow about:blank which some pages use for intermediate loads
@@ -146,25 +183,54 @@ export default function PlayerScreen() {
             />
           )}
 
-          {/* Transparent overlay to block any user interaction with the player/webview
-              while keeping the Voltar button clickable above it. */}
+          {/* Overlay to block user interaction with the webview.
+              Leaves a 40×100 cutout in the top-left for the unmute button. */}
           {shouldUseWebView && (
             <View
-              pointerEvents="auto"
-              onStartShouldSetResponder={() => true}
-              onResponderRelease={() => {
-                /* swallow touches */
-              }}
+              pointerEvents="box-none"
               style={{
                 position: "absolute",
                 top: 0,
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: "transparent",
                 zIndex: 1,
               }}
-            />
+            >
+              {/* Spacer to push cutout row down */}
+              <View
+                pointerEvents="auto"
+                onStartShouldSetResponder={() => true}
+                onResponderRelease={() => {}}
+                style={{ height: 38 }}
+              />
+              {/* Cutout row */}
+              <View pointerEvents="box-none" style={{ flexDirection: "row", height: 20 }}>
+                {/* Left margin block */}
+                <View
+                  pointerEvents="auto"
+                  onStartShouldSetResponder={() => true}
+                  onResponderRelease={() => {}}
+                  style={{ width: 45 }}
+                />
+                {/* Top-left cutout — touches pass through here */}
+                <View pointerEvents="none" style={{ width: 170, height: 20 }} />
+                {/* Block touches to the right of the cutout */}
+                <View
+                  pointerEvents="auto"
+                  onStartShouldSetResponder={() => true}
+                  onResponderRelease={() => {}}
+                  style={{ flex: 1 }}
+                />
+              </View>
+              {/* Block touches below the cutout row */}
+              <View
+                pointerEvents="auto"
+                onStartShouldSetResponder={() => true}
+                onResponderRelease={() => {}}
+                style={{ flex: 1 }}
+              />
+            </View>
           )}
 
           {loading && (
